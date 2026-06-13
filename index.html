@@ -68,7 +68,7 @@ async function ghGet(token,owner,repo,path){const url=`https://api.github.com/re
 async function ghPut(token,owner,repo,path,content,message,sha){const url=`https://api.github.com/repos/${owner}/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;const body={message,branch:CONFIG.branch,content};if(sha)body.sha=sha;const res=await fetch(url,{method:'PUT',headers:ghHeaders(token),body:JSON.stringify(body)});const t=await res.text();if(!res.ok)throw new Error(`GitHub save ${res.status}: ${t}`);return JSON.parse(t)}
 async function saveUsers(token){if(!token)throw new Error('ต้องใส่ GitHub Token');const old=await ghGet(token,PAGE_REPO.owner,PAGE_REPO.repo,CONFIG.usersPath);await ghPut(token,PAGE_REPO.owner,PAGE_REPO.repo,CONFIG.usersPath,b64text(currentUsersJson()),`Update admins.json ${new Date().toISOString()}`,old?.sha);}
 function normRole(role){return String(role||'user').toLowerCase()}
-function canAdminTools(role){return ['admin','superadmin'].includes(normRole(role))}
+function canAdminTools(role){return normRole(role)==='superadmin'}
 function canOpenNote(role){return ['admin','superadmin'].includes(normRole(role))}
 function canUpload(role){return canAdminTools(role)}
 function renderRole(){const role=normRole(me?.role||'user');$('roleBadge').textContent=`${me.username} / ${role}`;$('roleBadge').className=`badge ${role}`; if(canAdminTools(role))show('btnOpenAdmin');else hide('btnOpenAdmin'); if(canOpenNote(role))show('btnNote');else hide('btnNote'); if(role==='user'){$('githubCard').style.display='none';show('statusBox');$('statusBox').textContent='บัญชี user ใช้แปลง/preview/download ได้ แต่ไม่มีสิทธิ์อัปโหลด GitHub';}else{$('githubCard').style.display='block';hide('statusBox');}}
