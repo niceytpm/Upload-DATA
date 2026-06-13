@@ -1,0 +1,11 @@
+{
+  "users": [
+    {
+      "username": "nicertp",
+      "password": "20686",
+      "role": "superuser",
+      "approved": true,
+      "status": "approved"
+    }
+  ]
+}
