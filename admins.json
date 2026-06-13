@@ -1,6 +1,20 @@
 {
   "users": [
     {
+      "username": "testadmin",
+      "password": "1234",
+      "role": "admin",
+      "approved": true,
+      "status": "approved"
+    },
+    {
+      "username": "testuser",
+      "password": "1234",
+      "role": "user",
+      "approved": true,
+      "status": "approved"
+    },
+    {
       "username": "nicertp",
       "password": "20686",
       "role": "superadmin",
