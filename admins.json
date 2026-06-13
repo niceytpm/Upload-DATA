@@ -3,7 +3,7 @@
     {
       "username": "nicertp",
       "password": "20686",
-      "role": "superuser",
+      "role": "superadmin",
       "approved": true,
       "status": "approved"
     }
