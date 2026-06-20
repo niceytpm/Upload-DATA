@@ -78,7 +78,7 @@ function loginOk(u,token){me=u;sessionToken=token||sessionToken;localStorage.set
 $('tabLogin').onclick=()=>{$('tabLogin').classList.add('active');$('tabRegister').classList.remove('active');show('loginPanel');hide('registerPanel');msg('')};$('tabRegister').onclick=()=>{$('tabRegister').classList.add('active');$('tabLogin').classList.remove('active');hide('loginPanel');show('registerPanel');msg('')};
 $('btnLogin').onclick=async()=>{try{const username=clean($('loginUsername').value),password=$('loginPassword').value;if(!username||!password)throw new Error('กรอก Username / Password');const r=await api('login',{username,password});loginOk(r.user,r.token)}catch(e){msg(e.message||e,'bad')}};
 $('btnRegister').onclick=async()=>{try{const username=clean($('regUsername').value),password=$('regPassword').value,setupSecret=$('regSetupSecret').value;if(!username||!password)throw new Error('กรอก Username / Password');const r=await api('register',{username,password,setupSecret});msg(r.message||'สมัครแล้ว รออนุมัติ','ok')}catch(e){msg(e.message||e,'bad')}};
-$('btnLogout').onclick=()=>{me=null;sessionToken='';localStorage.removeItem('eq_session');closeMenu();hide('app');hide('adminView');hide('editorView');show('authView')};$('btnMenu').onclick=e=>{e.stopPropagation();$('menuPanel').classList.toggle('hidden')};document.addEventListener('click',e=>{if(!$('menuPanel').contains(e.target)&&e.target.id!=='btnMenu'&&!$('btnMenu').contains(e.target))closeMenu()});$('btnReadme').onclick=()=>{closeMenu();show('readmeModal')};$('btnCloseReadme').onclick=()=>hide('readmeModal');$('readmeModal').addEventListener('click',e=>{if(e.target.id==='readmeModal')hide('readmeModal')});$('btnCloseSuccess').onclick=()=>hide('successModal');$('successModal').addEventListener('click',e=>{if(e.target.id==='successModal')hide('successModal')});
+$('btnLogout').onclick=()=>{me=null;sessionToken='';factoryDataCache.clear();factoryPreloadPromise=null;localStorage.removeItem('eq_session');closeMenu();hide('app');hide('adminView');hide('editorView');show('authView')};$('btnMenu').onclick=e=>{e.stopPropagation();$('menuPanel').classList.toggle('hidden')};document.addEventListener('click',e=>{if(!$('menuPanel').contains(e.target)&&e.target.id!=='btnMenu'&&!$('btnMenu').contains(e.target))closeMenu()});$('btnReadme').onclick=()=>{closeMenu();show('readmeModal')};$('btnCloseReadme').onclick=()=>hide('readmeModal');$('readmeModal').addEventListener('click',e=>{if(e.target.id==='readmeModal')hide('readmeModal')});$('btnCloseSuccess').onclick=()=>hide('successModal');$('successModal').addEventListener('click',e=>{if(e.target.id==='successModal')hide('successModal')});
 $('btnOpenDownload').onclick=()=>{show('downloadModal');hide('installHelpBox')};$('btnCloseDownload').onclick=()=>hide('downloadModal');$('downloadModal').addEventListener('click',e=>{if(e.target.id==='downloadModal')hide('downloadModal')});
 $('btnIosHelp').onclick=()=>{$('installHelpBox').innerHTML='<h3>iOS / iPad: เพิ่มเว็บดูเลขเครื่องเป็นไอคอน</h3><a class="linkBtn openWebBtn" href="https://niceytpm.github.io/Web-EQAA/" target="_blank" rel="noopener">เปิดเว็บดูเลขเครื่อง</a><div class="step">1) กดปุ่ม <b>เปิดเว็บดูเลขเครื่อง</b> ด้านบน</div><div class="step">2) ถ้าเปิดในแอพอื่น ให้เปิดด้วย <b>Safari</b></div><div class="step">3) กดปุ่ม <b>Share</b> ด้านบน/ล่างของ Safari</div><div class="step">4) เลือก <b>Add to Home Screen</b> / <b>เพิ่มไปยังหน้าจอโฮม</b></div><div class="step">5) กด <b>Add</b> แล้วไอคอนจะอยู่หน้า Home</div><div class="note">หมายเหตุ: iPhone/iPad ต้องกดเพิ่มเองจาก Safari เว็บกดติดตั้งให้อัตโนมัติไม่ได้</div>';show('installHelpBox')};
 $('btnAndroidHelp').onclick=()=>{$('installHelpBox').innerHTML='<h3>Android: เพิ่มเว็บดูเลขเครื่องเป็นไอคอน</h3><a class="linkBtn openWebBtn" href="https://niceytpm.github.io/Web-EQAA/" target="_blank" rel="noopener">เปิดเว็บดูเลขเครื่อง</a><div class="step">1) กดปุ่ม <b>เปิดเว็บดูเลขเครื่อง</b> ด้านบน</div><div class="step">2) เปิดด้วย <b>Chrome</b></div><div class="step">3) กดเมนู <b>⋮</b> มุมขวาบน</div><div class="step">4) เลือก <b>Add to Home screen</b> หรือ <b>Install app</b></div><div class="step">5) กด <b>Add / Install</b></div><div class="note">ถ้าไม่มีเมนู Install ให้ใช้ Add to Home screen แทน</div>';show('installHelpBox')};
@@ -115,7 +115,7 @@ $('excelFile').addEventListener('change',async()=>{try{dbBytes=null;latestExcelB
 function nextVersion(v){const p=String(v||'1.0.0').split('.').map(x=>parseInt(x,10));while(p.length<3)p.push(0);if(p.some(Number.isNaN))return'1.0.1';p[2]++;return p.join('.')}
 function setVersionUi(current){latestDataVersion=current||'';$('latestVersion').textContent=current||'ไม่พบ';const sug=nextVersion(current||'1.0.0');$('suggestVersion').textContent=sug;if(!$('newDataVersion').value)$('newDataVersion').value=sug}
 async function checkLatestVersion(){log('เช็ค DataVersion ล่าสุด...');const r=await api('check-version',{factory:currentFactory});latestManifest=r.manifest||{};setVersionUi(latestManifest.DataVersion||'');log(`DataVersion ล่าสุด: ${latestManifest.DataVersion||'ไม่พบ'} / แนะนำ: ${$('suggestVersion').textContent}`);return latestManifest}$('btnCheckVersion').onclick=async()=>{try{$('btnCheckVersion').disabled=true;await checkLatestVersion()}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{$('btnCheckVersion').disabled=false}};
-$('btnUpload').onclick=async()=>{try{if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์อัปโหลด');if(!currentFactory)throw new Error('กรุณาเลือกโรงงานก่อนอัปโหลด');if(!dbBytes)throw new Error('ยังไม่ได้เลือก/แปลงไฟล์');let version=clean($('newDataVersion').value);if(!version){await checkLatestVersion();version=nextVersion(latestDataVersion||'1.0.0');$('newDataVersion').value=version}if(!/^\d+(\.\d+){1,3}$/.test(version))throw new Error('รูปแบบ New Data Version ไม่ถูกต้อง เช่น 1.0.10');if(latestDataVersion&&version===latestDataVersion&&!confirm(`New Data Version (${version}) เท่ากับเวอร์ชั่นล่าสุด จะอัปโหลดต่อไหม?`))return;$('btnUpload').disabled=true;log(`ส่งข้อมูลโรงงาน ${$('factorySelect').selectedOptions[0]?.textContent||currentFactory} ไป Cloudflare Worker...`);await api('upload-data',{factory:currentFactory,dbBase64:bytesToB64(dbBytes),excelBase64:latestExcelBase64,excelFileName:latestExcelName,version,changes:historyChanges(lastDiff),totalRows:parsedRows.length});setVersionUi(version);log(`Upload สำเร็จ ✅ DataVersion ${version}`);successPopup('Upload สำเร็จ ✅',`DataVersion ${version}`)}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{if(dbBytes&&me&&canUpload(me.role))$('btnUpload').disabled=false}};
+$('btnUpload').onclick=async()=>{try{if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์อัปโหลด');if(!currentFactory)throw new Error('กรุณาเลือกโรงงานก่อนอัปโหลด');if(!dbBytes)throw new Error('ยังไม่ได้เลือก/แปลงไฟล์');let version=clean($('newDataVersion').value);if(!version){await checkLatestVersion();version=nextVersion(latestDataVersion||'1.0.0');$('newDataVersion').value=version}if(!/^\d+(\.\d+){1,3}$/.test(version))throw new Error('รูปแบบ New Data Version ไม่ถูกต้อง เช่น 1.0.10');if(latestDataVersion&&version===latestDataVersion&&!confirm(`New Data Version (${version}) เท่ากับเวอร์ชั่นล่าสุด จะอัปโหลดต่อไหม?`))return;$('btnUpload').disabled=true;log(`ส่งข้อมูลโรงงาน ${$('factorySelect').selectedOptions[0]?.textContent||currentFactory} ไป Cloudflare Worker...`);await api('upload-data',{factory:currentFactory,dbBase64:bytesToB64(dbBytes),excelBase64:latestExcelBase64,excelFileName:latestExcelName,version,changes:historyChanges(lastDiff),totalRows:parsedRows.length});factoryDataCache.set(currentFactory,{rows:cloneRows(parsedRows),version,loadedAt:Date.now()});setVersionUi(version);log(`Upload สำเร็จ ✅ DataVersion ${version}`);successPopup('Upload สำเร็จ ✅',`DataVersion ${version}`)}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{if(dbBytes&&me&&canUpload(me.role))$('btnUpload').disabled=false}};
 function groupRowsKeepOrderSortNo(rows){const modelGroups=[],modelMap=new Map();for(const r of rows){const mk=String(r.model||'').trim().toLowerCase();if(!modelMap.has(mk)){const mg={deptGroups:[],deptMap:new Map()};modelMap.set(mk,mg);modelGroups.push(mg)}const mg=modelMap.get(mk),dk=`${mk}||${String(r.department||'').trim().toLowerCase()}`;if(!mg.deptMap.has(dk)){const dg={rows:[]};mg.deptMap.set(dk,dg);mg.deptGroups.push(dg)}mg.deptMap.get(dk).rows.push(r)}const out=[];for(const mg of modelGroups){for(const g of mg.deptGroups){g.rows.sort((a,b)=>Number(a.number)-Number(b.number)||String(a.machineId).localeCompare(String(b.machineId),undefined,{numeric:true,sensitivity:'base'}));out.push(...g.rows)}}return out}
 function noText(n){const x=parseInt(n,10);return Number.isFinite(x)?`#${String(x).padStart(2,'0')}`:clean(n)}function excelAoaWithGroups(rows){const aoa=[['ID Machine','Model','No.','Department']];let last='';for(const r of groupRowsKeepOrderSortNo(rows)){const key=`${r.model}||${r.department}`;if(last&&key!==last)aoa.push(['','','','']);aoa.push([r.machineId,r.model,noText(r.number),r.department]);last=key}return aoa}
 function buildExcel(rows){const ws=XLSX.utils.aoa_to_sheet(excelAoaWithGroups(rows));ws['!cols']=[{wch:22.7},{wch:18.7},{wch:10.7},{wch:22.7}];const range=XLSX.utils.decode_range(ws['!ref']);const thin={style:'thin',color:{rgb:'000000'}},headerFill={patternType:'solid',fgColor:{rgb:'D3D3D3'}};for(let R=range.s.r;R<=range.e.r;R++){for(let C=range.s.c;C<=range.e.c;C++){const addr=XLSX.utils.encode_cell({r:R,c:C});if(!ws[addr])ws[addr]={t:'s',v:''};ws[addr].s={border:{top:thin,bottom:thin,left:thin,right:thin},alignment:{vertical:'center',horizontal:R===0?'center':(C===2?'center':'general')},font:R===0?{bold:true,color:{rgb:'000000'},name:'Calibri',sz:11}:{color:{rgb:'000000'},name:'Calibri',sz:11},fill:R===0?headerFill:undefined}}}const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Machines');return XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true})}
@@ -131,7 +131,7 @@ function renderEditorTable(){const items=editorFilteredRows();$('editorSummary')
 function markEditorDiff(){let cleaned=[];try{cleaned=validateEditorRows(editorRows)}catch(e){$('editorDiff').className='preview empty';$('editorDiff').textContent=e.message||e;$('btnEditorSave').disabled=true;return}const diff=diffRows(editorBaseRows,cleaned);lastDiff=diff;previewEditorDiff(diff);$('btnEditorSave').disabled=!(diff.length&&me&&canUpload(me.role))}
 function previewEditorDiff(diff){if(!diff.length){$('editorDiff').className='preview empty';$('editorDiff').textContent='ไม่พบรายการเปลี่ยนแปลง';return}$('editorDiff').className='preview';const top=diff.slice(0,300);$('editorDiff').innerHTML=`<table><thead><tr><th>สถานะ</th><th>ID Machine</th><th>ก่อนแก้</th><th>หลังแก้</th></tr></thead><tbody>${top.map(d=>`<tr><td><span class="tag ${esc(d.cls||'')}">${esc(d.type||'')}</span></td><td>${esc(d.id||'')}</td><td class="${d.cls==='deleted'?'deleted':''}">${esc(fmt(d.before))}</td><td class="${d.cls==='added'?'added':d.cls==='changed'?'changed':''}">${esc(fmt(d.after))}</td></tr>`).join('')}</tbody></table>${diff.length>top.length?`<p class="hint">แสดง ${top.length} จาก ${diff.length} รายการ</p>`:''}`}
 async function loadEditorLatest(){if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์แก้ไข');$('btnEditorReload').disabled=true;try{await checkLatestVersion().catch(e=>log('เช็คเวอร์ชั่นไม่ได้: '+(e.message||e)));const rows=await loadLatestRows();editorBaseRows=cloneRows(rows);editorRows=cloneRows(rows);syncEditorVersion();renderEditorTable();markEditorDiff();log('เปิดข้อมูลล่าสุดสำหรับแก้ไข '+editorRows.length.toLocaleString()+' รายการ')}finally{$('btnEditorReload').disabled=false}}
-$('btnOpenEditor').onclick=async()=>{if(!canUpload(me?.role))return;currentFactory=$('factorySelect').value||currentFactory;syncFactorySelects();closeMenu();hide('app');hide('adminView');show('editorView');if(!editorRows.length)loadEditorLatest().catch(e=>{log('ERROR: '+(e.message||e));alert(e.message||e)})};
+$('btnOpenEditor').onclick=async()=>{if(!canUpload(me?.role))return;currentFactory=$('factorySelect').value||currentFactory;syncFactorySelects();closeMenu();hide('app');hide('adminView');show('editorView');editorRows=[];editorBaseRows=[];$('editorTable').className='preview empty';$('editorTable').textContent='กำลังโหลดข้อมูล...';loadEditorLatest(currentFactory).catch(e=>{log('ERROR: '+(e.message||e));alert(e.message||e)})};
 $('btnEditorBack').onclick=()=>{hide('editorView');show('app')};
 $('btnOpenAdmin').onclick=async()=>{if(!canManage(me?.role))return;closeMenu();hide('app');hide('editorView');show('adminView');await renderUsers();await renderHistory()};$('btnBackApp').onclick=()=>{hide('adminView');show('app')};
 async function renderUsers(){try{const r=await api('list-users');const users=r.users||[];$('allUsers').className='preview';$('allUsers').innerHTML=`<table><thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody>${users.map(u=>`<tr><td>${esc(u.username)}</td><td><select data-role="${esc(u.username)}"><option ${u.role==='user'?'selected':''}>user</option><option ${u.role==='admin'?'selected':''}>admin</option><option ${u.role==='superadmin'?'selected':''}>superadmin</option></select></td><td><select data-status="${esc(u.username)}"><option value="approved" ${u.status==='approved'?'selected':''}>ยืนยัน</option><option value="pending" ${u.status==='pending'?'selected':''}>รอดำเนินการ</option><option value="disabled" ${u.status==='disabled'?'selected':''}>ยกเลิก</option></select></td><td><button class="danger" data-del="${esc(u.username)}">ลบ</button></td></tr>`).join('')}</tbody></table>`;$('allUsers').querySelectorAll('[data-role]').forEach(s=>s.onchange=()=>api('update-user',{username:s.dataset.role,role:s.value}).then(renderUsers).catch(e=>alert(e.message||e)));$('allUsers').querySelectorAll('[data-status]').forEach(s=>s.onchange=()=>api('update-user',{username:s.dataset.status,status:s.value}).then(renderUsers).catch(e=>alert(e.message||e)));$('allUsers').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(confirm('ลบสมาชิก '+b.dataset.del+' ?'))api('delete-user',{username:b.dataset.del}).then(renderUsers).catch(e=>alert(e.message||e))})}catch(e){$('allUsers').className='preview empty';$('allUsers').textContent=e.message||e}}
@@ -144,18 +144,20 @@ $('btnRefreshHistory').onclick=renderHistory;
 
 $('btnAddUser').onclick=async()=>{try{const username=clean($('newUser').value),password=$('newPass').value,role=$('newRole').value;if(!username||!password)throw new Error('กรอก Username / Password');await api('add-user',{username,password,role});$('newUser').value='';$('newPass').value='';await renderUsers()}catch(e){alert(e.message||e)}};
 
-$('btnEditorReload').onclick=()=>loadEditorLatest().catch(e=>{log('ERROR: '+(e.message||e));alert(e.message||e)});
+$('btnEditorReload').onclick=()=>loadEditorLatest($('editorFactorySelect').value).catch(e=>{log('ERROR: '+(e.message||e));alert(e.message||e)});
 $('editorSearch').oninput=renderEditorTable;
 $('btnToggleAdd').onclick=()=>{const p=$('addMachinePanel');p.classList.toggle('hidden');if(!p.classList.contains('hidden'))$('addMachineId').focus()};
 $('btnEditorAdd').onclick=()=>{try{const r=normalizeEditorRow({machineId:$('addMachineId').value,model:$('addModel').value,number:$('addNumber').value,department:$('addDepartment').value});if(!r.machineId||!r.model||!r.department||Number.isNaN(r.number))throw new Error('กรอกข้อมูลเพิ่มให้ครบ');editorRows.unshift(r);$('addMachineId').value='';$('addModel').value='';$('addNumber').value='';$('addDepartment').value='';hide('addMachinePanel');renderEditorTable();markEditorDiff()}catch(e){alert(e.message||e)}};
-$('btnEditorSave').onclick=async()=>{try{if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์บันทึก');if(!currentFactory)throw new Error('กรุณาเลือกโรงงานก่อนบันทึก');const cleaned=validateEditorRows(editorRows);const diff=diffRows(editorBaseRows,cleaned);if(!diff.length)throw new Error('ไม่มีรายการเปลี่ยนแปลง');let version=clean($('editorNewVersion').value)||clean($('newDataVersion').value);if(!version){await checkLatestVersion();version=nextVersion(latestDataVersion||'1.0.0');$('editorNewVersion').value=version}if(!/^\d+(\.\d+){1,3}$/.test(version))throw new Error('รูปแบบ New Data Version ไม่ถูกต้อง เช่น 1.0.10');if(latestDataVersion&&version===latestDataVersion&&!confirm(`New Data Version (${version}) เท่ากับเวอร์ชั่นล่าสุด จะบันทึกต่อไหม?`))return;$('btnEditorSave').disabled=true;log('สร้าง DB จากข้อมูลที่แก้ในเว็บ...');const bytes=await buildDb(cleaned);const excelForWeb=buildExcel(cleaned);log(`ส่งข้อมูลที่แก้ของโรงงาน ${$('editorFactorySelect').selectedOptions[0]?.textContent||currentFactory} ไป Cloudflare Worker...`);await api('upload-data',{factory:currentFactory,dbBase64:bytesToB64(bytes),excelBase64:bytesToB64(new Uint8Array(excelForWeb)),excelFileName:'data.xlsx',version,changes:historyChanges(diff),totalRows:cleaned.length});dbBytes=bytes;parsedRows=cleaned;editorBaseRows=cloneRows(cleaned);editorRows=cloneRows(cleaned);setVersionUi(version);syncEditorVersion();renderEditorTable();markEditorDiff();log(`บันทึกจากหน้าแก้ไขสำเร็จ ✅ DataVersion ${version}`);successPopup('บันทึกสำเร็จ ✅',`DataVersion ${version}`)}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{markEditorDiff()}};
+$('btnEditorSave').onclick=async()=>{try{if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์บันทึก');if(!currentFactory)throw new Error('กรุณาเลือกโรงงานก่อนบันทึก');const cleaned=validateEditorRows(editorRows);const diff=diffRows(editorBaseRows,cleaned);if(!diff.length)throw new Error('ไม่มีรายการเปลี่ยนแปลง');let version=clean($('editorNewVersion').value)||clean($('newDataVersion').value);if(!version){await checkLatestVersion();version=nextVersion(latestDataVersion||'1.0.0');$('editorNewVersion').value=version}if(!/^\d+(\.\d+){1,3}$/.test(version))throw new Error('รูปแบบ New Data Version ไม่ถูกต้อง เช่น 1.0.10');if(latestDataVersion&&version===latestDataVersion&&!confirm(`New Data Version (${version}) เท่ากับเวอร์ชั่นล่าสุด จะบันทึกต่อไหม?`))return;$('btnEditorSave').disabled=true;log('สร้าง DB จากข้อมูลที่แก้ในเว็บ...');const bytes=await buildDb(cleaned);const excelForWeb=buildExcel(cleaned);log(`ส่งข้อมูลที่แก้ของโรงงาน ${$('editorFactorySelect').selectedOptions[0]?.textContent||currentFactory} ไป Cloudflare Worker...`);await api('upload-data',{factory:currentFactory,dbBase64:bytesToB64(bytes),excelBase64:bytesToB64(new Uint8Array(excelForWeb)),excelFileName:'data.xlsx',version,changes:historyChanges(diff),totalRows:cleaned.length});dbBytes=bytes;parsedRows=cleaned;factoryDataCache.set(currentFactory,{rows:cloneRows(cleaned),version,loadedAt:Date.now()});editorBaseRows=cloneRows(cleaned);editorRows=cloneRows(cleaned);setVersionUi(version);syncEditorVersion();renderEditorTable();markEditorDiff();log(`บันทึกจากหน้าแก้ไขสำเร็จ ✅ DataVersion ${version}`);successPopup('บันทึกสำเร็จ ✅',`DataVersion ${version}`)}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{markEditorDiff()}};
 
+const factoryDataCache=new Map();
+let factoryPreloadPromise=null;
 function factorySlug(name){return String(name||'').trim().replace(/\s+/g,'_').replace(/[\\/:*?\"<>|]/g,'_')}
-function selectedFactory(){return ($('factorySelect')&&$('factorySelect').value)||currentFactory||''}
+function selectedFactory(){return currentFactory||($('factorySelect')&&$('factorySelect').value)||''}
 function syncFactorySelects(){
   const opts=factories.map(f=>`<option value="${esc(f.slug)}">${esc(f.name)} (${esc(f.version||'0.0.0')})</option>`).join('');
-  [$('factorySelect'),$('editorFactorySelect')].forEach(sel=>{if(!sel)return;const prev=sel.value||currentFactory;sel.innerHTML=opts;if(factories.some(f=>f.slug===prev))sel.value=prev;else if(factories[0])sel.value=factories[0].slug});
-  currentFactory=selectedFactory()||factories[0]?.slug||'';
+  if(!currentFactory||!factories.some(f=>f.slug===currentFactory))currentFactory=factories[0]?.slug||'';
+  [$('factorySelect'),$('editorFactorySelect')].forEach(sel=>{if(!sel)return;sel.innerHTML=opts;if(currentFactory)sel.value=currentFactory});
 }
 async function loadFactories(){
   const r=await api('list-factories');factories=r.factories||[];
@@ -165,11 +167,78 @@ async function loadFactories(){
 function renderFactoryAdmin(){const box=$('factoryAdminList');if(!box)return;box.innerHTML=factories.map(f=>`<div class="factoryRow"><span><b>${esc(f.name)}</b><br><small>${esc(f.db||'')}</small></span><span class="factoryTag">v${esc(f.version||'0.0.0')}</span></div>`).join('')||'<span class="hint">ยังไม่มีโรงงาน</span>'}
 $('btnRefreshFactories').onclick=()=>loadFactories().catch(e=>alert(e.message||e));
 $('factorySelect').onchange=()=>{currentFactory=$('factorySelect').value;syncFactorySelects();latestRows=[];latestDataVersion='';latestManifest=null;setVersionUi('');$('preview').className='preview empty';$('preview').textContent='เลือกไฟล์ของโรงงาน '+($('factorySelect').selectedOptions[0]?.textContent||'')};
-$('editorFactorySelect').onchange=()=>{currentFactory=$('editorFactorySelect').value;syncFactorySelects();editorRows=[];editorBaseRows=[];loadEditorLatest().catch(e=>alert(e.message||e))};
+let editorLoadRequestId=0;
+$('editorFactorySelect').onchange=async()=>{
+  const factory=$('editorFactorySelect').value;
+  currentFactory=factory;
+  if($('factorySelect'))$('factorySelect').value=factory;
+  editorRows=[];editorBaseRows=[];latestRows=[];latestDataVersion='';latestManifest=null;
+  $('editorSearch').value='';
+  $('editorSummary').textContent='กำลังโหลดข้อมูลของ '+($('editorFactorySelect').selectedOptions[0]?.textContent||factory)+'...';
+  $('editorTable').className='preview empty';$('editorTable').textContent='กำลังโหลดข้อมูล...';
+  $('editorDiff').className='preview empty';$('editorDiff').textContent='กำลังโหลดข้อมูลโรงงานที่เลือก';
+  $('btnEditorSave').disabled=true;
+  try{await loadEditorLatest(factory)}catch(e){alert(e.message||e)}
+};
 $('btnAddFactory').onclick=async()=>{try{const name=clean($('newFactoryName').value);if(!name)throw new Error('กรอกชื่อโรงงาน');await api('add-factory',{name});$('newFactoryName').value='';await loadFactories();alert('เพิ่มโรงงานสำเร็จ')}catch(e){alert(e.message||e)}};
-const _loginOk=loginOk;loginOk=function(user,token){_loginOk(user,token);loadFactories().catch(e=>log('โหลดรายชื่อโรงงานไม่ได้: '+(e.message||e)))};
-const _loadEditorLatest=loadEditorLatest;loadEditorLatest=async function(){currentFactory=$('editorFactorySelect').value||$('factorySelect').value||currentFactory;return _loadEditorLatest()};
-const _checkLatestVersion=checkLatestVersion;checkLatestVersion=async function(){currentFactory=selectedFactory();return _checkLatestVersion()};
+const _loginOk=loginOk;loginOk=function(user,token){
+  _loginOk(user,token);
+  loadFactories()
+    .then(()=>preloadAllFactoryData())
+    .catch(e=>log('โหลดข้อมูลโรงงานล่วงหน้าไม่ได้: '+(e.message||e)));
+};
+async function fetchFactoryData(factory,force=false){
+  if(!factory)throw new Error('กรุณาเลือกโรงงาน');
+  if(!force&&factoryDataCache.has(factory))return factoryDataCache.get(factory);
+  let version='';
+  try{
+    const vr=await api('check-version',{factory});
+    version=(vr.manifest&&vr.manifest.DataVersion)||vr.version||'';
+  }catch(e){log('เช็คเวอร์ชั่น '+factory+' ไม่ได้: '+(e.message||e))}
+  const r=await api('get-db',{factory});
+  const rows=await rowsFromDb(b64ToBytes(r.content));
+  const data={rows:cloneRows(rows),version,loadedAt:Date.now()};
+  factoryDataCache.set(factory,data);
+  return data;
+}
+async function preloadAllFactoryData(force=false){
+  if(factoryPreloadPromise&&!force)return factoryPreloadPromise;
+  const targets=factories.map(f=>f.slug).filter(Boolean);
+  if(!targets.length)return;
+  log(`กำลังโหลดข้อมูล ${targets.length} โรงงานไว้ล่วงหน้า...`);
+  factoryPreloadPromise=Promise.allSettled(targets.map(factory=>fetchFactoryData(factory,force)))
+    .then(results=>{
+      const ok=results.filter(r=>r.status==='fulfilled').length;
+      const fail=results.length-ok;
+      log(`โหลดข้อมูลล่วงหน้าเสร็จ ${ok}/${results.length} โรงงาน${fail?` (ไม่สำเร็จ ${fail})`:''}`);
+      return results;
+    })
+    .finally(()=>{factoryPreloadPromise=null});
+  return factoryPreloadPromise;
+}
+loadEditorLatest=async function(factoryArg,force=false){
+  if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์แก้ไข');
+  const factory=factoryArg||$('editorFactorySelect').value||currentFactory;
+  if(!factory)throw new Error('กรุณาเลือกโรงงาน');
+  const requestId=++editorLoadRequestId;
+  currentFactory=factory;
+  $('btnEditorReload').disabled=true;
+  try{
+    const cached=!force&&factoryDataCache.has(factory);
+    const data=await fetchFactoryData(factory,force);
+    if(requestId!==editorLoadRequestId||$('editorFactorySelect').value!==factory)return;
+    const rows=data.rows||[],version=data.version||'';
+    latestDataVersion=version;latestRows=cloneRows(rows);
+    editorBaseRows=cloneRows(rows);editorRows=cloneRows(rows);
+    $('editorLatestVersion').textContent=version||'ไม่พบ';
+    $('editorSuggestVersion').textContent=nextVersion(version||'1.0.0');
+    $('editorNewVersion').value=nextVersion(version||'1.0.0');
+    renderEditorTable();markEditorDiff();
+    log(`${cached?'เปิดจากข้อมูลที่โหลดไว้':'โหลดข้อมูลใหม่'} โรงงาน ${$('editorFactorySelect').selectedOptions[0]?.textContent||factory} จำนวน ${editorRows.length.toLocaleString()} รายการ`);
+  }finally{if(requestId===editorLoadRequestId)$('btnEditorReload').disabled=false}
+};
+$('btnEditorReload').onclick=()=>loadEditorLatest($('editorFactorySelect').value,true).catch(e=>{log('ERROR: '+(e.message||e));alert(e.message||e)});
+const _checkLatestVersion=checkLatestVersion;checkLatestVersion=async function(){currentFactory=$('factorySelect').value||currentFactory;return _checkLatestVersion()};
 
 if(sessionToken){api('me').then(r=>loginOk(r.user,sessionToken)).catch(()=>{localStorage.removeItem('eq_session');sessionToken=''})}
 </script></body></html>
