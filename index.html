@@ -102,9 +102,9 @@ refreshLoginProgramLink();
 ['loginUsername','loginPassword'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('btnLogin').click()}}));
 function findHeaderIndex(headers,names){return headers.findIndex(h=>names.some(n=>h.toLowerCase()===n.toLowerCase()))}function parseNumber(v){const s=clean(v);const m=s.match(/\d+/);return m?parseInt(m[0],10):NaN}
 function parseWorkbook(buf){const wb=XLSX.read(buf,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});let idx=null,hr=-1;for(let r=0;r<Math.min(30,data.length);r++){const h=data[r].map(clean);const machineIdx=findHeaderIndex(h,['ID Machine','ID MACHINE','MachineId','Machine ID']);const modelIdx=findHeaderIndex(h,['Model','MODEL']);const numberIdx=findHeaderIndex(h,['No.','No','Number','Machine No']);const deptIdx=findHeaderIndex(h,['Department','Dept']);if(machineIdx>=0&&modelIdx>=0&&numberIdx>=0&&deptIdx>=0){idx={machineIdx,modelIdx,numberIdx,deptIdx};hr=r;break}}if(!idx)throw new Error('ไม่พบหัวตาราง ID Machine, Model, No., Department');const rows=[],seen=new Set();let skipped=0,dup=0;for(let r=hr+1;r<data.length;r++){const row=data[r],machineId=clean(row[idx.machineIdx]).toUpperCase(),model=clean(row[idx.modelIdx]).toUpperCase(),department=clean(row[idx.deptIdx]).toUpperCase(),number=parseNumber(row[idx.numberIdx]);if(!machineId&&!model&&!department&&Number.isNaN(number))continue;if(!machineId||!model||!department||Number.isNaN(number)){skipped++;continue}const key=machineId.toLowerCase();if(seen.has(key)){dup++;continue}seen.add(key);rows.push({machineId,model,number,department})}return{rows,skipped,dup}}
-async function buildDb(rows){const SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});const db=new SQL.Database();db.run('CREATE TABLE Machines (Id INTEGER PRIMARY KEY AUTOINCREMENT, MachineId TEXT NOT NULL UNIQUE COLLATE NOCASE, Model TEXT NOT NULL COLLATE NOCASE, Number INTEGER NOT NULL, Department TEXT NOT NULL COLLATE NOCASE);');db.run('CREATE TABLE ModelOptions (Name TEXT NOT NULL PRIMARY KEY COLLATE NOCASE);');db.run('CREATE TABLE DepartmentOptions (Name TEXT NOT NULL PRIMARY KEY COLLATE NOCASE);');const im=db.prepare('INSERT INTO Machines (MachineId,Model,Number,Department) VALUES (?,?,?,?)'),mo=db.prepare('INSERT OR IGNORE INTO ModelOptions (Name) VALUES (?)'),dp=db.prepare('INSERT OR IGNORE INTO DepartmentOptions (Name) VALUES (?)');db.run('BEGIN');for(const r of rows){im.run([r.machineId,r.model,r.number,r.department]);mo.run([r.model]);dp.run([r.department])}db.run('COMMIT');im.free();mo.free();dp.free();const out=db.export();db.close();return out}
+let sqlModulePromise=null;function getSqlModule(){if(!sqlModulePromise)sqlModulePromise=initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});return sqlModulePromise}async function buildDb(rows){const SQL=await getSqlModule();const db=new SQL.Database();db.run('CREATE TABLE Machines (Id INTEGER PRIMARY KEY AUTOINCREMENT, MachineId TEXT NOT NULL UNIQUE COLLATE NOCASE, Model TEXT NOT NULL COLLATE NOCASE, Number INTEGER NOT NULL, Department TEXT NOT NULL COLLATE NOCASE);');db.run('CREATE TABLE ModelOptions (Name TEXT NOT NULL PRIMARY KEY COLLATE NOCASE);');db.run('CREATE TABLE DepartmentOptions (Name TEXT NOT NULL PRIMARY KEY COLLATE NOCASE);');const im=db.prepare('INSERT INTO Machines (MachineId,Model,Number,Department) VALUES (?,?,?,?)'),mo=db.prepare('INSERT OR IGNORE INTO ModelOptions (Name) VALUES (?)'),dp=db.prepare('INSERT OR IGNORE INTO DepartmentOptions (Name) VALUES (?)');db.run('BEGIN');for(const r of rows){im.run([r.machineId,r.model,r.number,r.department]);mo.run([r.model]);dp.run([r.department])}db.run('COMMIT');im.free();mo.free();dp.free();const out=db.export();db.close();return out}
 function b64ToBytes(c){const bin=atob(String(c||'').replace(/\n/g,''));return Uint8Array.from(bin,x=>x.charCodeAt(0))}function bytesToB64(bytes){let bin='',ch=0x8000;for(let i=0;i<bytes.length;i+=ch)bin+=String.fromCharCode(...bytes.subarray(i,i+ch));return btoa(bin)}
-async function rowsFromDb(bytes){const SQL=await initSqlJs({locateFile:f=>`https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`});const db=new SQL.Database(bytes);let rows=[];try{let res=db.exec('SELECT MachineId, Model, Number, Department FROM Machines ORDER BY Id;');if(!res.length)res=db.exec('SELECT MachineId, Model, Number, Department FROM Machines ORDER BY rowid;');if(res.length){rows=res[0].values.map(v=>({machineId:clean(v[0]).toUpperCase(),model:clean(v[1]).toUpperCase(),number:Number(v[2]),department:clean(v[3]).toUpperCase()}));}}finally{db.close()}return rows}
+async function rowsFromDb(bytes){const SQL=await getSqlModule();const db=new SQL.Database(bytes);let rows=[];try{let res=db.exec('SELECT MachineId, Model, Number, Department FROM Machines ORDER BY Id;');if(!res.length)res=db.exec('SELECT MachineId, Model, Number, Department FROM Machines ORDER BY rowid;');if(res.length){rows=res[0].values.map(v=>({machineId:clean(v[0]).toUpperCase(),model:clean(v[1]).toUpperCase(),number:Number(v[2]),department:clean(v[3]).toUpperCase()}));}}finally{db.close()}return rows}
 async function loadLatestRows(){try{const r=await api('get-db',{factory:currentFactory});latestRows=await rowsFromDb(b64ToBytes(r.content));log(`โหลด DB ล่าสุดมาเทียบ ${latestRows.length.toLocaleString()} รายการ`);return latestRows}catch(e){latestRows=[];log('โหลด DB ล่าสุดเพื่อเทียบไม่ได้: '+(e.message||e));return []}}
 function rowKey(r){return String(r.machineId||'').toLowerCase()}function sameRow(a,b){return a&&b&&a.model===b.model&&Number(a.number)===Number(b.number)&&a.department===b.department}
 function diffRows(oldRows,newRows){const oldMap=new Map(oldRows.map(r=>[rowKey(r),r])),newMap=new Map(newRows.map(r=>[rowKey(r),r]));const out=[];for(const r of newRows){const old=oldMap.get(rowKey(r));if(!old)out.push({type:'เพิ่มใหม่',cls:'added',id:r.machineId,before:null,after:r});else if(!sameRow(old,r))out.push({type:'แก้ไข',cls:'changed',id:r.machineId,before:old,after:r});}for(const r of oldRows){if(!newMap.has(rowKey(r)))out.push({type:'ถูกลบ',cls:'deleted',id:r.machineId,before:r,after:null});}return out}
@@ -115,7 +115,7 @@ $('excelFile').addEventListener('change',async()=>{try{dbBytes=null;latestExcelB
 function nextVersion(v){const p=String(v||'1.0.0').split('.').map(x=>parseInt(x,10));while(p.length<3)p.push(0);if(p.some(Number.isNaN))return'1.0.1';p[2]++;return p.join('.')}
 function setVersionUi(current){latestDataVersion=current||'';$('latestVersion').textContent=current||'ไม่พบ';const sug=nextVersion(current||'1.0.0');$('suggestVersion').textContent=sug;if(!$('newDataVersion').value)$('newDataVersion').value=sug}
 async function checkLatestVersion(){log('เช็ค DataVersion ล่าสุด...');const r=await api('check-version',{factory:currentFactory});latestManifest=r.manifest||{};setVersionUi(latestManifest.DataVersion||'');log(`DataVersion ล่าสุด: ${latestManifest.DataVersion||'ไม่พบ'} / แนะนำ: ${$('suggestVersion').textContent}`);return latestManifest}$('btnCheckVersion').onclick=async()=>{try{$('btnCheckVersion').disabled=true;await checkLatestVersion()}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{$('btnCheckVersion').disabled=false}};
-$('btnUpload').onclick=async()=>{try{if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์อัปโหลด');if(!currentFactory)throw new Error('กรุณาเลือกโรงงานก่อนอัปโหลด');if(!dbBytes)throw new Error('ยังไม่ได้เลือก/แปลงไฟล์');let version=clean($('newDataVersion').value);if(!version){await checkLatestVersion();version=nextVersion(latestDataVersion||'1.0.0');$('newDataVersion').value=version}if(!/^\d+(\.\d+){1,3}$/.test(version))throw new Error('รูปแบบ New Data Version ไม่ถูกต้อง เช่น 1.0.10');if(latestDataVersion&&version===latestDataVersion&&!confirm(`New Data Version (${version}) เท่ากับเวอร์ชั่นล่าสุด จะอัปโหลดต่อไหม?`))return;$('btnUpload').disabled=true;log(`ส่งข้อมูลโรงงาน ${$('factorySelect').selectedOptions[0]?.textContent||currentFactory} ไป Cloudflare Worker...`);await api('upload-data',{factory:currentFactory,dbBase64:bytesToB64(dbBytes),excelBase64:latestExcelBase64,excelFileName:latestExcelName,version,changes:historyChanges(lastDiff),totalRows:parsedRows.length});factoryDataCache.set(currentFactory,{rows:cloneRows(parsedRows),version,loadedAt:Date.now()});setVersionUi(version);log(`Upload สำเร็จ ✅ DataVersion ${version}`);successPopup('Upload สำเร็จ ✅',`DataVersion ${version}`)}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{if(dbBytes&&me&&canUpload(me.role))$('btnUpload').disabled=false}};
+$('btnUpload').onclick=async()=>{try{if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์อัปโหลด');if(!currentFactory)throw new Error('กรุณาเลือกโรงงานก่อนอัปโหลด');if(!dbBytes)throw new Error('ยังไม่ได้เลือก/แปลงไฟล์');let version=clean($('newDataVersion').value);if(!version){await checkLatestVersion();version=nextVersion(latestDataVersion||'1.0.0');$('newDataVersion').value=version}if(!/^\d+(\.\d+){1,3}$/.test(version))throw new Error('รูปแบบ New Data Version ไม่ถูกต้อง เช่น 1.0.10');if(latestDataVersion&&version===latestDataVersion&&!confirm(`New Data Version (${version}) เท่ากับเวอร์ชั่นล่าสุด จะอัปโหลดต่อไหม?`))return;$('btnUpload').disabled=true;log(`ส่งข้อมูลโรงงาน ${$('factorySelect').selectedOptions[0]?.textContent||currentFactory} ไป Cloudflare Worker...`);await api('upload-data',{factory:currentFactory,dbBase64:bytesToB64(dbBytes),excelBase64:latestExcelBase64,excelFileName:latestExcelName,version,changes:historyChanges(lastDiff),totalRows:parsedRows.length});factoryDataCache.set(currentFactory,{factory:currentFactory,rows:cloneRows(parsedRows),version,loadedAt:Date.now(),source:'upload'});setVersionUi(version);log(`Upload สำเร็จ ✅ DataVersion ${version}`);successPopup('Upload สำเร็จ ✅',`DataVersion ${version}`)}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{if(dbBytes&&me&&canUpload(me.role))$('btnUpload').disabled=false}};
 function groupRowsKeepOrderSortNo(rows){const modelGroups=[],modelMap=new Map();for(const r of rows){const mk=String(r.model||'').trim().toLowerCase();if(!modelMap.has(mk)){const mg={deptGroups:[],deptMap:new Map()};modelMap.set(mk,mg);modelGroups.push(mg)}const mg=modelMap.get(mk),dk=`${mk}||${String(r.department||'').trim().toLowerCase()}`;if(!mg.deptMap.has(dk)){const dg={rows:[]};mg.deptMap.set(dk,dg);mg.deptGroups.push(dg)}mg.deptMap.get(dk).rows.push(r)}const out=[];for(const mg of modelGroups){for(const g of mg.deptGroups){g.rows.sort((a,b)=>Number(a.number)-Number(b.number)||String(a.machineId).localeCompare(String(b.machineId),undefined,{numeric:true,sensitivity:'base'}));out.push(...g.rows)}}return out}
 function noText(n){const x=parseInt(n,10);return Number.isFinite(x)?`#${String(x).padStart(2,'0')}`:clean(n)}function excelAoaWithGroups(rows){const aoa=[['ID Machine','Model','No.','Department']];let last='';for(const r of groupRowsKeepOrderSortNo(rows)){const key=`${r.model}||${r.department}`;if(last&&key!==last)aoa.push(['','','','']);aoa.push([r.machineId,r.model,noText(r.number),r.department]);last=key}return aoa}
 function buildExcel(rows){const ws=XLSX.utils.aoa_to_sheet(excelAoaWithGroups(rows));ws['!cols']=[{wch:22.7},{wch:18.7},{wch:10.7},{wch:22.7}];const range=XLSX.utils.decode_range(ws['!ref']);const thin={style:'thin',color:{rgb:'000000'}},headerFill={patternType:'solid',fgColor:{rgb:'D3D3D3'}};for(let R=range.s.r;R<=range.e.r;R++){for(let C=range.s.c;C<=range.e.c;C++){const addr=XLSX.utils.encode_cell({r:R,c:C});if(!ws[addr])ws[addr]={t:'s',v:''};ws[addr].s={border:{top:thin,bottom:thin,left:thin,right:thin},alignment:{vertical:'center',horizontal:R===0?'center':(C===2?'center':'general')},font:R===0?{bold:true,color:{rgb:'000000'},name:'Calibri',sz:11}:{color:{rgb:'000000'},name:'Calibri',sz:11},fill:R===0?headerFill:undefined}}}const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Machines');return XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true})}
@@ -148,7 +148,7 @@ $('btnEditorReload').onclick=()=>loadEditorLatest($('editorFactorySelect').value
 $('editorSearch').oninput=renderEditorTable;
 $('btnToggleAdd').onclick=()=>{const p=$('addMachinePanel');p.classList.toggle('hidden');if(!p.classList.contains('hidden'))$('addMachineId').focus()};
 $('btnEditorAdd').onclick=()=>{try{const r=normalizeEditorRow({machineId:$('addMachineId').value,model:$('addModel').value,number:$('addNumber').value,department:$('addDepartment').value});if(!r.machineId||!r.model||!r.department||Number.isNaN(r.number))throw new Error('กรอกข้อมูลเพิ่มให้ครบ');editorRows.unshift(r);$('addMachineId').value='';$('addModel').value='';$('addNumber').value='';$('addDepartment').value='';hide('addMachinePanel');renderEditorTable();markEditorDiff()}catch(e){alert(e.message||e)}};
-$('btnEditorSave').onclick=async()=>{try{if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์บันทึก');if(!currentFactory)throw new Error('กรุณาเลือกโรงงานก่อนบันทึก');const cleaned=validateEditorRows(editorRows);const diff=diffRows(editorBaseRows,cleaned);if(!diff.length)throw new Error('ไม่มีรายการเปลี่ยนแปลง');let version=clean($('editorNewVersion').value)||clean($('newDataVersion').value);if(!version){await checkLatestVersion();version=nextVersion(latestDataVersion||'1.0.0');$('editorNewVersion').value=version}if(!/^\d+(\.\d+){1,3}$/.test(version))throw new Error('รูปแบบ New Data Version ไม่ถูกต้อง เช่น 1.0.10');if(latestDataVersion&&version===latestDataVersion&&!confirm(`New Data Version (${version}) เท่ากับเวอร์ชั่นล่าสุด จะบันทึกต่อไหม?`))return;$('btnEditorSave').disabled=true;log('สร้าง DB จากข้อมูลที่แก้ในเว็บ...');const bytes=await buildDb(cleaned);const excelForWeb=buildExcel(cleaned);log(`ส่งข้อมูลที่แก้ของโรงงาน ${$('editorFactorySelect').selectedOptions[0]?.textContent||currentFactory} ไป Cloudflare Worker...`);await api('upload-data',{factory:currentFactory,dbBase64:bytesToB64(bytes),excelBase64:bytesToB64(new Uint8Array(excelForWeb)),excelFileName:'data.xlsx',version,changes:historyChanges(diff),totalRows:cleaned.length});dbBytes=bytes;parsedRows=cleaned;factoryDataCache.set(currentFactory,{rows:cloneRows(cleaned),version,loadedAt:Date.now()});editorBaseRows=cloneRows(cleaned);editorRows=cloneRows(cleaned);setVersionUi(version);syncEditorVersion();renderEditorTable();markEditorDiff();log(`บันทึกจากหน้าแก้ไขสำเร็จ ✅ DataVersion ${version}`);successPopup('บันทึกสำเร็จ ✅',`DataVersion ${version}`)}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{markEditorDiff()}};
+$('btnEditorSave').onclick=async()=>{try{if(!me||!canUpload(me.role))throw new Error('ไม่มีสิทธิ์บันทึก');if(!currentFactory)throw new Error('กรุณาเลือกโรงงานก่อนบันทึก');const cleaned=validateEditorRows(editorRows);const diff=diffRows(editorBaseRows,cleaned);if(!diff.length)throw new Error('ไม่มีรายการเปลี่ยนแปลง');let version=clean($('editorNewVersion').value)||clean($('newDataVersion').value);if(!version){await checkLatestVersion();version=nextVersion(latestDataVersion||'1.0.0');$('editorNewVersion').value=version}if(!/^\d+(\.\d+){1,3}$/.test(version))throw new Error('รูปแบบ New Data Version ไม่ถูกต้อง เช่น 1.0.10');if(latestDataVersion&&version===latestDataVersion&&!confirm(`New Data Version (${version}) เท่ากับเวอร์ชั่นล่าสุด จะบันทึกต่อไหม?`))return;$('btnEditorSave').disabled=true;log('สร้าง DB จากข้อมูลที่แก้ในเว็บ...');const bytes=await buildDb(cleaned);const excelForWeb=buildExcel(cleaned);log(`ส่งข้อมูลที่แก้ของโรงงาน ${$('editorFactorySelect').selectedOptions[0]?.textContent||currentFactory} ไป Cloudflare Worker...`);await api('upload-data',{factory:currentFactory,dbBase64:bytesToB64(bytes),excelBase64:bytesToB64(new Uint8Array(excelForWeb)),excelFileName:'data.xlsx',version,changes:historyChanges(diff),totalRows:cleaned.length});dbBytes=bytes;parsedRows=cleaned;factoryDataCache.set(currentFactory,{factory:currentFactory,rows:cloneRows(cleaned),version,loadedAt:Date.now(),source:'editor'});editorBaseRows=cloneRows(cleaned);editorRows=cloneRows(cleaned);setVersionUi(version);syncEditorVersion();renderEditorTable();markEditorDiff();log(`บันทึกจากหน้าแก้ไขสำเร็จ ✅ DataVersion ${version}`);successPopup('บันทึกสำเร็จ ✅',`DataVersion ${version}`)}catch(e){log('ERROR: '+(e.message||e));alert(e.message||e)}finally{markEditorDiff()}};
 
 const factoryDataCache=new Map();
 let factoryPreloadPromise=null;
@@ -209,39 +209,66 @@ const _loginOk=loginOk;loginOk=function(user,token){
 };
 async function fetchFactoryData(factory,force=false){
   if(!factory)throw new Error('กรุณาเลือกโรงงาน');
-  if(!force&&factoryDataCache.has(factory))return factoryDataCache.get(factory);
   const info=factories.find(f=>f.slug===factory||f.name===factory);
-  let version=info?.version||'';
+  if(!info)throw new Error('ไม่พบโรงงาน '+factory);
+  const cacheKey=info.slug;
+  if(!force&&factoryDataCache.has(cacheKey))return factoryDataCache.get(cacheKey);
+  let version=info.version||'';
   let rows;
+  let source='Worker';
   try{
-    const vr=await api('check-version',{factory});
+    const vr=await api('check-version',{factory:info.slug});
     version=(vr.manifest&&vr.manifest.DataVersion)||vr.version||version;
-    const r=await api('get-db',{factory});
+    const r=await api('get-db',{factory:info.slug});
     rows=await rowsFromDb(b64ToBytes(r.content));
   }catch(e){
-    log(`โหลด ${info?.name||factory} ผ่าน Worker ไม่ได้ (${e.message||e}) กำลังโหลดตรงจาก EQAA_PC...`);
-    const dbName=info?.db||`machines_${factorySlug(factory)}.db`;
-    const res=await fetch(rawPcUrl('updates/data/'+dbName),{cache:'no-store'});
-    if(!res.ok)throw new Error(`โหลดข้อมูลโรงงาน ${info?.name||factory} ไม่ได้ HTTP ${res.status}`);
+    source='GitHub';
+    log(`โหลด ${info.name} ผ่าน Worker ไม่ได้ (${e.message||e}) กำลังโหลดไฟล์ ${info.db} ตรงจาก EQAA_PC...`);
+    const res=await fetch(rawPcUrl('updates/data/'+info.db),{cache:'no-store'});
+    if(!res.ok)throw new Error(`โหลดข้อมูลโรงงาน ${info.name} ไม่ได้ HTTP ${res.status}`);
     rows=await rowsFromDb(new Uint8Array(await res.arrayBuffer()));
   }
-  const data={rows:cloneRows(rows),version,loadedAt:Date.now()};
-  factoryDataCache.set(factory,data);
+  // สร้างข้อมูลชุดใหม่แยกโรงงาน ห้ามแชร์ array/reference กัน
+  const isolatedRows=cloneRows(rows);
+  const sample=isolatedRows.slice(0,3).map(r=>r.machineId).join(', ')||'-';
+  const data={factory:info.slug,db:info.db,rows:isolatedRows,version,loadedAt:Date.now(),source};
+  factoryDataCache.set(cacheKey,data);
+  log(`เตรียมข้อมูล ${info.name} จาก ${info.db} (${source}) ${isolatedRows.length.toLocaleString()} รายการ / ตัวอย่าง: ${sample}`);
   return data;
 }
 async function preloadAllFactoryData(force=false){
   if(factoryPreloadPromise&&!force)return factoryPreloadPromise;
   const targets=factories.map(f=>f.slug).filter(Boolean);
   if(!targets.length)return;
-  log(`กำลังโหลดข้อมูล ${targets.length} โรงงานไว้ล่วงหน้า...`);
-  factoryPreloadPromise=Promise.allSettled(targets.map(factory=>fetchFactoryData(factory,force)))
-    .then(results=>{
-      const ok=results.filter(r=>r.status==='fulfilled').length;
-      const fail=results.length-ok;
-      log(`โหลดข้อมูลล่วงหน้าเสร็จ ${ok}/${results.length} โรงงาน${fail?` (ไม่สำเร็จ ${fail})`:''}`);
-      return results;
-    })
-    .finally(()=>{factoryPreloadPromise=null});
+  if(force)factoryDataCache.clear();
+  log(`กำลังโหลดข้อมูล ${targets.length} โรงงานแยกไฟล์ไว้ล่วงหน้า...`);
+  // โหลดทีละโรงงานเพื่อป้องกัน sql.js/ตัวแปรข้อมูลชนกันระหว่างการเปิด DB พร้อมกัน
+  factoryPreloadPromise=(async()=>{
+    const results=[];
+    for(const factory of targets){
+      try{results.push({status:'fulfilled',value:await fetchFactoryData(factory,force)})}
+      catch(error){results.push({status:'rejected',reason:error});const info=factories.find(f=>f.slug===factory);log(`โหลด ${info?.name||factory} ไม่สำเร็จ: ${error.message||error}`)}
+    }
+    const ok=results.filter(r=>r.status==='fulfilled').length;
+    const fail=results.length-ok;
+    // แจ้งเตือนถ้าข้อมูลหลายโรงงานเหมือนกันจริงใน GitHub
+    const signatures=new Map();
+    for(const r of results){
+      if(r.status!=='fulfilled')continue;
+      const d=r.value;
+      const sig=d.rows.map(x=>`${x.machineId}|${x.model}|${x.number}|${x.department}`).join('\n');
+      if(!signatures.has(sig))signatures.set(sig,[]);
+      signatures.get(sig).push(d.factory);
+    }
+    for(const same of signatures.values()){
+      if(same.length>1){
+        const names=same.map(k=>factories.find(f=>f.slug===k)?.name||k).join(', ');
+        log(`คำเตือน: ไฟล์ข้อมูลของ ${names} มีข้อมูลเหมือนกันทั้งหมด ต้องอัปโหลด Excel ที่ถูกต้องแยกแต่ละโรงงานอีกครั้ง`);
+      }
+    }
+    log(`โหลดข้อมูลล่วงหน้าเสร็จ ${ok}/${results.length} โรงงาน${fail?` (ไม่สำเร็จ ${fail})`:''}`);
+    return results;
+  })().finally(()=>{factoryPreloadPromise=null});
   return factoryPreloadPromise;
 }
 loadEditorLatest=async function(factoryArg,force=false){
