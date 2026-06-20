@@ -159,10 +159,30 @@ function syncFactorySelects(){
   if(!currentFactory||!factories.some(f=>f.slug===currentFactory))currentFactory=factories[0]?.slug||'';
   [$('factorySelect'),$('editorFactorySelect')].forEach(sel=>{if(!sel)return;sel.innerHTML=opts;if(currentFactory)sel.value=currentFactory});
 }
+const PC_RAW_BASE='https://raw.githubusercontent.com/niceytpm/EQAA_PC/main/';
+function rawPcUrl(path){return PC_RAW_BASE+String(path||'').split('/').map(encodeURIComponent).join('/')+'?t='+Date.now()}
+function normalizeFactoryClient(x){
+  const name=clean(x?.name||x?.slug);
+  const slug=factorySlug(x?.slug||name);
+  return {name,slug,db:clean(x?.db)||`machines_${slug}.db`,version:clean(x?.version)||'0.0.0'};
+}
 async function loadFactories(){
-  const r=await api('list-factories');factories=r.factories||[];
-  if(!factories.length)factories=[{name:'TERAHOP',slug:'TERAHOP'}];
-  syncFactorySelects();renderFactoryAdmin();return factories;
+  let list=[];
+  try{
+    const r=await api('list-factories');
+    list=r.factories||[];
+  }catch(e){
+    log('Worker ยังไม่รองรับรายชื่อโรงงาน กำลังโหลดตรงจาก EQAA_PC...');
+    const res=await fetch(rawPcUrl('updates/factories.json'),{cache:'no-store'});
+    if(!res.ok)throw new Error('โหลดรายชื่อโรงงานไม่ได้ HTTP '+res.status);
+    const j=await res.json();
+    list=Array.isArray(j)?j:(j.factories||[]);
+  }
+  factories=list.map(normalizeFactoryClient).filter(f=>f.name&&f.slug);
+  if(!factories.length)throw new Error('ไม่พบรายชื่อโรงงานใน EQAA_PC/updates/factories.json');
+  syncFactorySelects();renderFactoryAdmin();
+  log('โหลดรายชื่อโรงงานสำเร็จ: '+factories.map(f=>f.name).join(', '));
+  return factories;
 }
 function renderFactoryAdmin(){const box=$('factoryAdminList');if(!box)return;box.innerHTML=factories.map(f=>`<div class="factoryRow"><span><b>${esc(f.name)}</b><br><small>${esc(f.db||'')}</small></span><span class="factoryTag">v${esc(f.version||'0.0.0')}</span></div>`).join('')||'<span class="hint">ยังไม่มีโรงงาน</span>'}
 $('btnRefreshFactories').onclick=()=>loadFactories().catch(e=>alert(e.message||e));
@@ -190,13 +210,21 @@ const _loginOk=loginOk;loginOk=function(user,token){
 async function fetchFactoryData(factory,force=false){
   if(!factory)throw new Error('กรุณาเลือกโรงงาน');
   if(!force&&factoryDataCache.has(factory))return factoryDataCache.get(factory);
-  let version='';
+  const info=factories.find(f=>f.slug===factory||f.name===factory);
+  let version=info?.version||'';
+  let rows;
   try{
     const vr=await api('check-version',{factory});
-    version=(vr.manifest&&vr.manifest.DataVersion)||vr.version||'';
-  }catch(e){log('เช็คเวอร์ชั่น '+factory+' ไม่ได้: '+(e.message||e))}
-  const r=await api('get-db',{factory});
-  const rows=await rowsFromDb(b64ToBytes(r.content));
+    version=(vr.manifest&&vr.manifest.DataVersion)||vr.version||version;
+    const r=await api('get-db',{factory});
+    rows=await rowsFromDb(b64ToBytes(r.content));
+  }catch(e){
+    log(`โหลด ${info?.name||factory} ผ่าน Worker ไม่ได้ (${e.message||e}) กำลังโหลดตรงจาก EQAA_PC...`);
+    const dbName=info?.db||`machines_${factorySlug(factory)}.db`;
+    const res=await fetch(rawPcUrl('updates/data/'+dbName),{cache:'no-store'});
+    if(!res.ok)throw new Error(`โหลดข้อมูลโรงงาน ${info?.name||factory} ไม่ได้ HTTP ${res.status}`);
+    rows=await rowsFromDb(new Uint8Array(await res.arrayBuffer()));
+  }
   const data={rows:cloneRows(rows),version,loadedAt:Date.now()};
   factoryDataCache.set(factory,data);
   return data;
