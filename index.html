@@ -19,6 +19,9 @@
 .passwordResetBtn{background:#3a2d12!important;color:#fde68a!important;border:1px solid #8a6b20!important}
 .forcePasswordModal .guideModal{width:min(480px,100%)}
 .forcePasswordModal .notice{margin-bottom:14px}
+
+.editorDraftNote{margin-top:8px;color:#fbbf24;font-size:13px}
+#btnClearEditorDraft{padding:9px 12px;font-size:13px}
 </style></head><body>
 <div id="authView" class="center"><section class="card login"><div class="loginBanner"><img src="aa-banner.png" alt="AA Equipment"></div><h1>EquipmentAA</h1><p class="sub">BY C24AM6 RATTAPONG L.</p><div class="tabs"><button id="tabLogin" class="tab active">เข้าสู่ระบบ</button><button id="tabRegister" class="tab">สมัครสมาชิก</button></div><div id="loginPanel"><label>Username</label><input id="loginUsername" autocomplete="username" placeholder="username"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="password"><div class="actions"><button id="btnLogin">เข้าสู่ระบบ</button></div></div><div id="registerPanel" class="hidden"><label>Username</label><input id="regUsername" placeholder="ชื่อผู้ใช้"><label>Password</label><input id="regPassword" type="password" placeholder="รหัสผ่าน"><div id="setupSecretBox" class="secretSetupBox hidden"><label>Setup Secret</label><p class="hint">ใช้เฉพาะการสร้าง superadmin</p><input id="regSetupSecret" type="password" placeholder="กรอก Setup Secret"></div><div class="actions"><button id="btnRegister">สมัครสมาชิก</button></div></div><div class="actions" style="margin-top:12px"><button id="btnOpenDownload" class="secondary" type="button">ดาวน์โหลดโปรแกรม / ติดตั้งแอพ</button></div><p id="authMsg" class="hint"></p></section></div>
 <div id="toast" class="toast hidden"></div><div id="loadingOverlay" class="loadingOverlay hidden" aria-live="polite" aria-busy="true"><div class="loadingBox"><div class="loadingSpinner"></div><div id="loadingText" class="loadingText">กำลังดำเนินการ...</div><div id="loadingSub" class="loadingSub">กรุณารอสักครู่</div></div></div><main id="app" class="wrap hidden"><div class="top"><div><h1>อัพเดทเลขเครื่อง</h1><p class="sub">BY C24AM6 RATTAPONG L.</p></div><div class="topMenu"><span id="roleBadge" class="badge">role</span><button id="btnMenu" class="hamburger" aria-label="เปิดเมนู"><span class="hamburgerIcon"><span></span><span></span><span></span></span></button><div id="menuPanel" class="menuPanel hidden"><button id="btnReadme" class="bluebtn">README</button><button id="btnOpenEditor" class="secondary hidden">แก้ไขเลขเครื่อง</button><button id="btnOpenAdmin" class="greenbtn hidden">จัดการสมาชิก</button><button id="btnLogout" class="redbtn">ออก</button></div></div></div><div id="statusBox" class="notice hidden"></div><div id="dataWizard" class="dataWizard"><div class="wizardProgress"><div id="wizardDot1" class="wizardDot active"><span class="num">1</span>เลือกโรงงานและไฟล์</div><div id="wizardDot2" class="wizardDot"><span class="num">2</span>ตรวจ Preview</div><div id="wizardDot3" class="wizardDot"><span class="num">3</span>ยืนยันและอัปโหลด</div></div><section id="dataStep1" class="wizardStage"><div class="card"><div class="wizardStageHead"><span class="stageNum">1</span><h2>เลือกโรงงานและไฟล์ Excel</h2></div><div class="factoryBar"><div class="field"><label>โรงงานที่ต้องการอัปโหลด</label><select id="factorySelect"></select></div><button id="btnRefreshFactories" class="secondary" type="button">รีเฟรชโรงงาน</button></div><input id="excelFile" type="file" accept=".xlsx,.xls"><div id="summary" class="summary hidden"></div><p class="hint">เลือกโรงงานให้ถูกต้อง แล้วเลือกไฟล์ Excel ระบบจะแปลงให้อัตโนมัติ</p><div id="step1Done" class="wizardDoneNote hidden">✓ แปลงไฟล์สำเร็จ กำลังเปิดขั้นตอนตรวจสอบ</div></div></section><section id="dataStep2" class="wizardStage hidden"><div class="card"><div class="wizardStageHead"><span class="stageNum">2</span><h2>ตรวจ Preview รายการที่เปลี่ยน</h2></div><div id="preview" class="preview empty">ยังไม่ได้เลือกไฟล์</div><div id="step2Done" class="wizardDoneNote hidden">✓ ตรวจข้อมูลแล้ว ขั้นตอนอัปโหลดพร้อมใช้งานด้านล่าง</div></div></section><div class="grid"><section id="adminLatestExcelCard" class="card hidden"><div class="downloadLatestCard"><div><h2 style="margin-bottom:6px">ไฟล์ Excel เวอร์ชันล่าสุด</h2><p class="hint" style="margin:0">ดาวน์โหลดข้อมูลล่าสุดของโรงงานที่เลือกเป็นไฟล์ Excel</p></div><div class="actions"><button id="btnAdminLatestExcel" class="secondary" type="button">ดาวน์โหลด Excel เวอร์ชันล่าสุด</button></div></div></section><section id="dataStep3" class="wizardStage hidden"><section id="githubCard" class="card"><div class="wizardStageHead"><span class="stageNum">3</span><h2>ยืนยันเวอร์ชันและอัปโหลด Data</h2></div><div class="actions"><button id="btnCheckVersion" class="secondary">เช็คเวอร์ชั่นล่าสุด</button><button id="btnLoadLatestDb" class="secondary">ดาวน์โหลดเวอร์ชั่นล่าสุดเป็น Excel</button></div><div id="versionBox" class="notice" style="margin-top:12px">เวอร์ชั่นล่าสุด: <b id="latestVersion">ยังไม่ได้เช็ค</b><br>เวอร์ชั่นที่แนะนำ: <b id="suggestVersion">-</b></div><label>New Data Version</label><div class="versionInputRow"><input id="newDataVersion" class="versionLocked" placeholder="ระบบกำหนดให้อัตโนมัติ" readonly><button id="btnEditDataVersion" class="versionEditBtn" type="button" title="แก้ไขเวอร์ชั่น">✎</button></div><div class="versionHelp">ระบบใส่เวอร์ชั่นถัดไปให้อัตโนมัติ กดปุ่มดินสอเมื่อต้องการแก้ไขเอง</div><div class="actions"><button id="btnUpload" disabled>Upload</button></div><p class="hint">admin / superadmin เท่านั้นที่อัปโหลดได้</p></section></section><section id="programCard" class="hidden" aria-hidden="true"><input id="programVersion"><input id="programFile" type="file"><button id="btnUploadProgram" type="button"></button></section><section class="card"><h2>Log</h2><pre id="log"></pre></section></div></main>
@@ -31,7 +34,7 @@
   <section class="card">
     <div class="cardHead">
       <h2>ค้นหาและแก้ไข</h2>
-      <button id="btnToggleAdd" class="plusBtn" title="เพิ่มเครื่องใหม่">+</button>
+      <div class="actions" style="margin:0"><button id="btnClearEditorDraft" class="secondary hidden" type="button" title="ล้างร่างที่ยังไม่ได้อัปโหลด">ล้างร่าง</button><button id="btnToggleAdd" class="plusBtn" title="เพิ่มเครื่องใหม่">+</button></div>
     </div>
     <div class="editorToolbar">
       <div class="field"><label>โรงงานที่ต้องการแก้ไข</label><select id="editorFactorySelect"></select></div>
@@ -484,6 +487,147 @@ loadEditorLatest=async function(factoryArg,force=false){
 };
 $('btnEditorReload').onclick=()=>loadEditorLatest($('editorFactorySelect').value,true).catch(e=>{log('ERROR: '+(e.message||e));alert(e.message||e)});
 const _checkLatestVersion=checkLatestVersion;checkLatestVersion=async function(){currentFactory=$('factorySelect').value||currentFactory;return _checkLatestVersion()};
+
+
+// ===== บันทึกร่างหน้าแก้ไข แยกตามโรงงาน =====
+const EDITOR_DRAFT_PREFIX='eq_editor_draft_v1:';
+let restoringEditorDraft=false;
+let editorDraftPromptedFactory='';
+
+function editorDraftKey(factory){
+  return EDITOR_DRAFT_PREFIX+encodeURIComponent(String(factory||''));
+}
+function getEditorDraft(factory){
+  if(!factory)return null;
+  try{
+    const raw=localStorage.getItem(editorDraftKey(factory));
+    if(!raw)return null;
+    const d=JSON.parse(raw);
+    return d&&Array.isArray(d.rows)?d:null;
+  }catch{return null}
+}
+function saveEditorDraft(factory){
+  if(restoringEditorDraft||!factory||!Array.isArray(editorRows)||!editorRows.length)return;
+  let cleaned;
+  try{cleaned=validateEditorRows(editorRows)}catch{return}
+  const diff=diffRows(editorBaseRows,cleaned);
+  if(!diff.length)return;
+  localStorage.setItem(editorDraftKey(factory),JSON.stringify({
+    factory,
+    rows:cloneRows(cleaned),
+    savedAt:new Date().toISOString(),
+    baseVersion:latestDataVersion||'',
+    changeCount:diff.length
+  }));
+  show('btnClearEditorDraft');
+}
+function clearEditorDraft(factory,notify=false){
+  if(!factory)return;
+  localStorage.removeItem(editorDraftKey(factory));
+  if(currentFactory===factory)hide('btnClearEditorDraft');
+  if(notify)toast('ล้างร่างของโรงงานนี้แล้ว');
+}
+function hasUnsavedEditorChanges(){
+  try{return diffRows(editorBaseRows,validateEditorRows(editorRows)).length>0}catch{return false}
+}
+function formatDraftTime(value){
+  try{return new Date(value).toLocaleString('th-TH')}catch{return '-'}
+}
+async function offerRestoreEditorDraft(factory){
+  const draft=getEditorDraft(factory);
+  if(!draft){hide('btnClearEditorDraft');return}
+  show('btnClearEditorDraft');
+  if(editorDraftPromptedFactory===factory)return;
+  editorDraftPromptedFactory=factory;
+  const name=$('editorFactorySelect').selectedOptions[0]?.textContent||factory;
+  const ok=confirm(
+    `พบร่างที่ยังไม่ได้อัปโหลดของโรงงาน ${name}\n`+
+    `บันทึกล่าสุด: ${formatDraftTime(draft.savedAt)}\n`+
+    `รายการเปลี่ยนแปลงประมาณ: ${draft.changeCount||'-'} รายการ\n\n`+
+    `กด OK เพื่อกู้คืนร่าง\nกด Cancel เพื่อใช้ข้อมูลล่าสุดจากระบบ`
+  );
+  if(ok){
+    restoringEditorDraft=true;
+    try{
+      editorRows=cloneRows(draft.rows);
+      renderEditorTable();
+      markEditorDiff();
+      log(`กู้คืนร่างโรงงาน ${name} สำเร็จ`);
+      toast('กู้คืนร่างที่ยังไม่ได้อัปโหลดแล้ว');
+    }finally{restoringEditorDraft=false}
+  }
+}
+
+const _markEditorDiffWithDraft=markEditorDiff;
+markEditorDiff=function(){
+  _markEditorDiffWithDraft();
+  if(!restoringEditorDraft&&currentFactory&&hasUnsavedEditorChanges()){
+    saveEditorDraft(currentFactory);
+  }
+};
+
+const _loadEditorLatestWithDraft=loadEditorLatest;
+loadEditorLatest=async function(factoryArg,force=false){
+  const factory=factoryArg||$('editorFactorySelect').value||currentFactory;
+  editorDraftPromptedFactory='';
+  await _loadEditorLatestWithDraft(factory,force);
+  await offerRestoreEditorDraft(factory);
+};
+
+$('btnClearEditorDraft').onclick=()=>{
+  const factory=$('editorFactorySelect').value||currentFactory;
+  if(!getEditorDraft(factory)){hide('btnClearEditorDraft');return}
+  if(!confirm('ต้องการล้างร่างที่ยังไม่ได้อัปโหลดของโรงงานนี้ใช่หรือไม่?'))return;
+  clearEditorDraft(factory,true);
+  loadEditorLatest(factory,false).catch(e=>alert(e.message||e));
+};
+
+const _editorBackWithDraft=$('btnEditorBack').onclick;
+$('btnEditorBack').onclick=()=>{
+  if(hasUnsavedEditorChanges()){
+    const name=$('editorFactorySelect').selectedOptions[0]?.textContent||currentFactory;
+    if(!confirm(`มีร่างของโรงงาน ${name} ที่ยังไม่ได้อัปโหลด\nร่างถูกบันทึกไว้ในเครื่องแล้ว ต้องการออกจากหน้านี้หรือไม่?`))return;
+    saveEditorDraft(currentFactory);
+  }
+  _editorBackWithDraft();
+};
+
+const _editorFactoryChangeWithDraft=$('editorFactorySelect').onchange;
+$('editorFactorySelect').onchange=async function(){
+  const nextFactory=$('editorFactorySelect').value;
+  const previousFactory=currentFactory;
+  if(previousFactory&&previousFactory!==nextFactory&&hasUnsavedEditorChanges()){
+    const prevName=factories.find(f=>f.slug===previousFactory)?.name||previousFactory;
+    if(!confirm(`มีร่างของโรงงาน ${prevName} ที่ยังไม่ได้อัปโหลด\nระบบบันทึกร่างไว้แล้ว ต้องการเปลี่ยนโรงงานหรือไม่?`)){
+      $('editorFactorySelect').value=previousFactory;
+      return;
+    }
+    saveEditorDraft(previousFactory);
+  }
+  editorDraftPromptedFactory='';
+  return _editorFactoryChangeWithDraft.call(this);
+};
+
+window.addEventListener('beforeunload',e=>{
+  if(!hasUnsavedEditorChanges())return;
+  saveEditorDraft(currentFactory);
+  e.preventDefault();
+  e.returnValue='';
+});
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'&&hasUnsavedEditorChanges())saveEditorDraft(currentFactory);
+});
+
+// ลบร่างหลังบันทึกและอัปโหลดสำเร็จ
+const _successPopupDraftAware=successPopup;
+successPopup=function(title,message){
+  if(title&&String(title).includes('บันทึกสำเร็จ')&&currentFactory){
+    clearEditorDraft(currentFactory,false);
+    editorDraftPromptedFactory='';
+  }
+  return _successPopupDraftAware(title,message);
+};
 
 if(sessionToken){api('me').then(r=>loginOk(r.user,sessionToken)).catch(()=>{localStorage.removeItem('eq_session');sessionToken=''})}
 </script></body></html>
