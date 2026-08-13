@@ -85,9 +85,9 @@
         <button id="btnIosHelp" class="downloadChoice iosChoice" type="button">
           <div class="choiceLogo">🍎</div><div class="choiceTitle">iOS / iPad</div><div class="choiceHint">เปิดเว็บดูเลขเครื่อง แล้วเพิ่มเป็นไอคอน</div>
         </button>
-        <button id="btnAndroidHelp" class="downloadChoice androidChoice" type="button">
-          <div class="choiceLogo">🤖</div><div class="choiceTitle">Android</div><div class="choiceHint">เปิดเว็บดูเลขเครื่อง แล้วเพิ่มเป็นไอคอน</div>
-        </button>
+        <a id="btnAndroidDownload" class="downloadChoice androidChoice" href="./EquipmentAA.apk" download="EquipmentAA.apk">
+          <div class="choiceLogo">🤖</div><div class="choiceTitle">Android</div><div class="choiceHint">ดาวน์โหลด EquipmentAA.apk เพื่อติดตั้งแอพ</div>
+        </a>
       </div>
       <div id="installHelpBox" class="installHelp hidden"></div>
     </div>
@@ -280,7 +280,7 @@ $('btnRegister').onclick=async()=>{try{const username=clean($('regUsername').val
 $('btnLogout').onclick=async()=>{closeMenu();showLoading('กำลังออกจากระบบ...','กำลังล้างข้อมูลชั่วคราว');try{await api('logout')}catch(e){}await wait(650);await clearLocalSession();hideLoading()};$('btnMenu').onclick=e=>{e.stopPropagation();$('menuPanel').classList.toggle('hidden')};document.addEventListener('click',e=>{if(!$('menuPanel').contains(e.target)&&e.target.id!=='btnMenu'&&!$('btnMenu').contains(e.target))closeMenu()});$('btnReadme').onclick=()=>{closeMenu();show('readmeModal')};$('btnCloseReadme').onclick=()=>hide('readmeModal');$('readmeModal').addEventListener('click',e=>{if(e.target.id==='readmeModal')hide('readmeModal')});$('btnCloseSuccess').onclick=()=>hide('successModal');$('successModal').addEventListener('click',e=>{if(e.target.id==='successModal')hide('successModal')});
 $('btnOpenDownload').onclick=()=>{show('downloadModal');hide('installHelpBox')};$('btnCloseDownload').onclick=()=>hide('downloadModal');$('downloadModal').addEventListener('click',e=>{if(e.target.id==='downloadModal')hide('downloadModal')});
 $('btnIosHelp').onclick=()=>{$('installHelpBox').innerHTML='<h3>iOS / iPad: เพิ่มเว็บดูเลขเครื่องเป็นไอคอน</h3><a class="linkBtn openWebBtn" href="https://niceytpm.github.io/Web-EQAA/" target="_blank" rel="noopener">เปิดเว็บดูเลขเครื่อง</a><div class="step">1) กดปุ่ม <b>เปิดเว็บดูเลขเครื่อง</b> ด้านบน</div><div class="step">2) ถ้าเปิดในแอพอื่น ให้เปิดด้วย <b>Safari</b></div><div class="step">3) กดปุ่ม <b>Share</b> ด้านบน/ล่างของ Safari</div><div class="step">4) เลือก <b>Add to Home Screen</b> / <b>เพิ่มไปยังหน้าจอโฮม</b></div><div class="step">5) กด <b>Add</b> แล้วไอคอนจะอยู่หน้า Home</div><div class="note">หมายเหตุ: iPhone/iPad ต้องกดเพิ่มเองจาก Safari เว็บกดติดตั้งให้อัตโนมัติไม่ได้</div>';show('installHelpBox')};
-$('btnAndroidHelp').onclick=()=>{$('installHelpBox').innerHTML='<h3>Android: เพิ่มเว็บดูเลขเครื่องเป็นไอคอน</h3><a class="linkBtn openWebBtn" href="https://niceytpm.github.io/Web-EQAA/" target="_blank" rel="noopener">เปิดเว็บดูเลขเครื่อง</a><div class="step">1) กดปุ่ม <b>เปิดเว็บดูเลขเครื่อง</b> ด้านบน</div><div class="step">2) เปิดด้วย <b>Chrome</b></div><div class="step">3) กดเมนู <b>⋮</b> มุมขวาบน</div><div class="step">4) เลือก <b>Add to Home screen</b> หรือ <b>Install app</b></div><div class="step">5) กด <b>Add / Install</b></div><div class="note">ถ้าไม่มีเมนู Install ให้ใช้ Add to Home screen แทน</div>';show('installHelpBox')};
+$('btnAndroidDownload').onclick=()=>{$('installHelpBox').innerHTML='<h3>ติดตั้งแอพ EquipmentAA บน Android</h3><div class="step">1) รอให้ดาวน์โหลดไฟล์ <b>EquipmentAA.apk</b> เสร็จ</div><div class="step">2) แตะไฟล์ที่ดาวน์โหลดจากแถบแจ้งเตือนหรือโฟลเดอร์ Download</div><div class="step">3) กด <b>ติดตั้ง</b> ในหน้าติดตั้งของ Android</div><div class="note">หากเครื่องถามสิทธิ์ ให้เปิดอนุญาต “ติดตั้งแอพที่ไม่รู้จัก” สำหรับเบราว์เซอร์ที่ใช้ดาวน์โหลด แล้วกลับมากดติดตั้งอีกครั้ง</div>';show('installHelpBox')};
 if($('btnModeData'))$('btnModeData').onclick=()=>setUploadMode('data');if($('btnModeProgram'))$('btnModeProgram').onclick=()=>setUploadMode('program');
 
 
