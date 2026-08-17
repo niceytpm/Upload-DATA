@@ -213,7 +213,7 @@ async function toggleCamera(){
     await loadQrLibrary();q('checkCameraBox').classList.remove('hidden');
     state.scanner=new Html5Qrcode('qrReader',{formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],verbose:false});
     const qrbox=(w,h)=>{const side=Math.floor(Math.min(w,h)*0.92);return{width:Math.max(250,side),height:Math.max(250,side)}};
-    await state.scanner.start({facingMode:{ideal:'environment'}},{fps:25,qrbox,aspectRatio:1.0,disableFlip:false,experimentalFeatures:{useBarCodeDetectorIfSupported:true}},async text=>{
+    await state.scanner.start({facingMode:'environment'},{fps:25,qrbox,aspectRatio:1.0,disableFlip:false,experimentalFeatures:{useBarCodeDetectorIfSupported:true}},async text=>{
       const id=extractMachineId(text);q('checkScanInput').value=id||text;await stopCamera();handleScan(text);
     },()=>{});
     state.cameraOn=true;q('btnCheckCamera').textContent='ปิดกล้อง';
