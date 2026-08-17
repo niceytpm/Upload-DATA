@@ -9,23 +9,27 @@ function injectStyles(){
   const style=document.createElement('style');
   style.textContent=`
   .checkMenuBtn{background:linear-gradient(135deg,#f59e0b,#d97706)!important;color:#1b1000!important;border:1px solid #fbbf24!important}
-  .checkGrid{display:grid;grid-template-columns:minmax(230px,.7fr) minmax(0,1.3fr);gap:16px;align-items:start}
-  .checkScanRow{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end}
+  .checkGrid{display:grid;grid-template-columns:minmax(430px,1.55fr) minmax(260px,.65fr);gap:16px;align-items:start}
+  .checkScanRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+  .checkScanRow .scanField{grid-column:1/-1}
   .checkResult{margin-top:14px;border:1px solid #31445f;border-radius:18px;padding:16px;background:#08111f}
   .checkResult.ok{border-color:#22c55e}.checkResult.missing{border-color:#f59e0b}.checkResult.editing{border-color:#38bdf8}
   .checkResultTitle{font-size:19px;font-weight:900;margin-bottom:12px}
-  .checkFields{display:grid;grid-template-columns:1.2fr 1fr .55fr 1fr;gap:10px}
+  .checkFields{display:grid;grid-template-columns:1fr;gap:8px}
+  .checkFields label{margin-top:7px}
+  .checkFields input{min-width:0;width:100%}
   .checkActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-  .checkStats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:12px 0}
-  .checkStat{padding:11px;border:1px solid #26364d;border-radius:13px;background:#08111f}.checkStat b{display:block;font-size:21px}
-  .cameraBox{margin-top:12px;border:1px solid #31445f;border-radius:16px;overflow:hidden;background:#050914}
+  .checkStats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}
+  .checkStat{padding:8px 9px;border:1px solid #26364d;border-radius:11px;background:#08111f;font-size:12px}.checkStat b{display:block;font-size:18px}
+  .cameraBox{margin-top:12px;border:1px solid #31445f;border-radius:16px;overflow:hidden;background:#050914;min-height:280px}
   #qrReader{width:100%}.checkRecent{display:grid;gap:8px;max-height:420px;overflow:auto}
-  .checkRecentItem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 12px;border:1px solid #26364d;border-radius:12px;background:#08111f}
+  .checkRecentItem{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 9px;border:1px solid #26364d;border-radius:10px;background:#08111f;font-size:13px}
   .checkRecentItem small{color:#91a3b8}.checkStatus{font-size:12px;font-weight:800;border-radius:999px;padding:4px 8px;background:#123a25;color:#cbf7d8}
   .suggestWrap{position:relative}.suggestList{position:absolute;left:0;right:0;top:100%;z-index:20;max-height:190px;overflow:auto;background:#0b1220;border:1px solid #38bdf8;border-radius:12px;margin-top:4px;padding:5px;box-shadow:0 16px 40px rgba(0,0,0,.5)}
   .suggestItem{display:block;width:100%;text-align:left;background:#101d30!important;color:#e5edf7!important;border:0!important;margin:2px 0;padding:10px 12px!important}.suggestItem:hover{background:#163c5a!important}
-  @media(max-width:760px){.checkGrid{grid-template-columns:1fr}.checkScanRow{grid-template-columns:1fr 1fr}.checkScanRow .scanField{grid-column:1/-1}.checkFields{grid-template-columns:1fr 1fr}.checkStats{grid-template-columns:1fr 1fr}}
-  @media(max-width:460px){.checkFields{grid-template-columns:1fr}.checkScanRow{grid-template-columns:1fr}.checkScanRow .scanField{grid-column:auto}}
+  @media(max-width:900px){.checkGrid{grid-template-columns:1fr}.checkStats{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:600px){.checkStats{grid-template-columns:1fr 1fr}}
+  @media(max-width:460px){.checkScanRow{grid-template-columns:1fr}.checkScanRow .scanField{grid-column:auto}.checkActions button{width:100%}}
   `;
   document.head.appendChild(style);
 }
@@ -206,9 +210,10 @@ async function stopCamera(){if(state.scanner){try{await state.scanner.stop()}cat
 async function toggleCamera(){
   if(state.cameraOn)return stopCamera();
   try{
-    await loadQrLibrary();q('checkCameraBox').classList.remove('hidden');state.scanner=new Html5Qrcode('qrReader');
-    const qrbox=(w,h)=>{const side=Math.floor(Math.min(w,h)*0.82);return{width:Math.max(220,side),height:Math.max(220,side)}};
-    await state.scanner.start({facingMode:{ideal:'environment'}},{fps:15,qrbox,aspectRatio:1.0,disableFlip:false,experimentalFeatures:{useBarCodeDetectorIfSupported:true}},async text=>{
+    await loadQrLibrary();q('checkCameraBox').classList.remove('hidden');
+    state.scanner=new Html5Qrcode('qrReader',{formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],verbose:false});
+    const qrbox=(w,h)=>{const side=Math.floor(Math.min(w,h)*0.92);return{width:Math.max(250,side),height:Math.max(250,side)}};
+    await state.scanner.start({facingMode:{ideal:'environment'}},{fps:25,qrbox,aspectRatio:1.0,disableFlip:false,experimentalFeatures:{useBarCodeDetectorIfSupported:true}},async text=>{
       const id=extractMachineId(text);q('checkScanInput').value=id||text;await stopCamera();handleScan(text);
     },()=>{});
     state.cameraOn=true;q('btnCheckCamera').textContent='ปิดกล้อง';
