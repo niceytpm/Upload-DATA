@@ -136,8 +136,21 @@ function applyEdit(index){try{const oldId=state.rows[index].machineId,row=readFo
 function addScanned(){try{const row=readForm();validateForm(row);state.rows.unshift(row);acceptChecked(row.machineId,'เพิ่มใหม่');saveDraft();renderDiff()}catch(e){alert(e.message||e)}}
 function acceptChecked(id,status){state.checked.add(normalizeText(id));saveChecked();renderStats();renderRecent(id,status);q('checkResult').classList.add('hidden');focusScanner()}
 
+function extractMachineId(value){
+  const raw=normalizeText(value);if(!raw)return'';
+  // QR บางรุ่นเก็บหลายบรรทัด/URL: ให้หา ID ที่มีอยู่ในฐานข้อมูลก่อน
+  const exact=state.rows.find(r=>raw.includes(normalizeText(r.machineId)));
+  if(exact)return normalizeText(exact.machineId);
+  // รูปแบบ Asset No. ที่พบบนป้าย เช่น EFAZZ0001565
+  const asset=raw.match(/\b[A-Z]{3,8}[0-9]{5,14}\b/);
+  if(asset)return asset[0];
+  // ถ้าเป็นข้อความ "Asset No: ..." ให้ตัดเฉพาะค่าหลังหัวข้อ
+  const labelled=raw.match(/(?:ASSET\s*(?:NO|NUMBER)?|MACHINE\s*ID)\s*[:#=-]?\s*([A-Z0-9_-]{6,30})/);
+  return labelled?labelled[1]:raw;
+}
 function handleScan(value){
-  const id=normalizeText(value);if(!id)return;
+  const raw=normalizeText(value),id=extractMachineId(raw);if(!id)return;
+  q('checkScanInput').value=id;
   const index=state.rows.findIndex(r=>normalizeText(r.machineId)===id);
   if(index>=0)showFound(index);else showMissing(id);
 }
@@ -192,7 +205,14 @@ function loadQrLibrary(){return new Promise((resolve,reject)=>{if(window.Html5Qr
 async function stopCamera(){if(state.scanner){try{await state.scanner.stop()}catch{}try{state.scanner.clear()}catch{}state.scanner=null}state.cameraOn=false;q('checkCameraBox').classList.add('hidden');q('btnCheckCamera').textContent='เปิดกล้อง'}
 async function toggleCamera(){
   if(state.cameraOn)return stopCamera();
-  try{await loadQrLibrary();q('checkCameraBox').classList.remove('hidden');state.scanner=new Html5Qrcode('qrReader');await state.scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:250}},async text=>{await stopCamera();q('checkScanInput').value=text;handleScan(text)},()=>{});state.cameraOn=true;q('btnCheckCamera').textContent='ปิดกล้อง'}catch(e){await stopCamera();alert('เปิดกล้องไม่ได้: '+(e.message||e)+'\nกรุณาอนุญาตกล้องและเปิดเว็บผ่าน HTTPS')}
+  try{
+    await loadQrLibrary();q('checkCameraBox').classList.remove('hidden');state.scanner=new Html5Qrcode('qrReader');
+    const qrbox=(w,h)=>{const side=Math.floor(Math.min(w,h)*0.82);return{width:Math.max(220,side),height:Math.max(220,side)}};
+    await state.scanner.start({facingMode:{ideal:'environment'}},{fps:15,qrbox,aspectRatio:1.0,disableFlip:false,experimentalFeatures:{useBarCodeDetectorIfSupported:true}},async text=>{
+      const id=extractMachineId(text);q('checkScanInput').value=id||text;await stopCamera();handleScan(text);
+    },()=>{});
+    state.cameraOn=true;q('btnCheckCamera').textContent='ปิดกล้อง';
+  }catch(e){await stopCamera();alert('เปิดกล้องไม่ได้: '+(e.message||e)+'\nกรุณาอนุญาตกล้องและเปิดเว็บผ่าน HTTPS')}
 }
 
 function wire(){
